@@ -4,3 +4,7 @@ Dzialani programu konczy sie nacisnieciem q na klawiaturze
 W lini 12-16 zmieniajac odpowiednio paramtery zeminnych upper_color,lower_color moznaa ustawiac zakresy wykrywaanych kolorow. Teraz jest ustawione na bardzo szeroki zakres czerwonego i niebieskiego
 Kolory w liniach 12-16 sa w formaci HSV 180 stopnie nie 360
 
+
+
+[01.09.2025 - Bartlomiej]
+Sprawdzi ktos czy ta komuniacja dziala w sensowny sposob?
