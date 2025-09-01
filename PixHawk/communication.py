@@ -7,7 +7,7 @@ class PixHawkService:
     """
     Example usage:
     # Initialize connection\n
-    drone = PixhawkMission()
+    drone = PixHawkService()
 
     waypoints = [
         {"lat": -35.363261, "lon": 149.165230, "alt": 20},
