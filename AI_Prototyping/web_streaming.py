@@ -5,13 +5,41 @@ import threading
 import time
 import numpy as np
 from simple_shapes_detection import shapes_detection
+from ultralytics import YOLO
 
 
 app = Flask(__name__)
 
 FPS_RATE = 0.033
-CAMERA_WIDTH = 480
-CAMERA_HEIGHT = 320
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 640
+
+
+class YoloDetection:
+    def __init__(self, model_path="YoloV8-finetune/DroneModel/yolov8n_V2_320/weights/best_ncnn_model"):
+        self.model = YOLO(model_path, task="detect")
+
+    def process_frame(self, frame):
+        results = self.model(frame)
+        annotated_frame = frame.copy()
+
+        for result in results:
+            boxes = result.boxes
+            if boxes is not None:
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+                    confidence = box.conf[0].cpu().numpy()
+                    class_id = int(box.cls[0].cpu().numpy())
+
+                    class_name = self.model.names[class_id]
+
+                    cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                    label = f"{class_name}: {confidence:.2f}"
+                    cv2.putText(annotated_frame, label, (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        return annotated_frame
 
 
 class CameraStream:
@@ -20,6 +48,8 @@ class CameraStream:
         config = self.picam2.create_preview_configuration(main={"size": (CAMERA_WIDTH, CAMERA_HEIGHT)})
         self.picam2.configure(config)
         self.picam2.start()
+
+        self.yolo_model = YoloDetection()
 
         self.processing_mode = 'original'
         self.stabilization_enabled = False
@@ -128,7 +158,8 @@ class CameraStream:
                     frame_bgr = self.stabilize_frame(frame_bgr)
 
                 if self.processing_mode == 'processed':
-                    processed = shapes_detection(frame_bgr)
+                    processed = self.yolo_model.process_frame(frame)
+                    # processed = shapes_detection(frame_bgr)
                 else:
                     processed = frame_bgr
 
@@ -164,6 +195,10 @@ class CameraStream:
 
 # Global camera instance
 camera = CameraStream()
+
+
+
+
 
 
 def generate_frames():
