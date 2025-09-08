@@ -59,48 +59,73 @@ def first_lap_path(left_top, right_top, right_bottom, left_bottom):
     center_lon = (left_top["lon"] + right_top["lon"] + right_bottom["lon"] + left_bottom["lon"]) / 4
 
     def diagonal_offset(p):
-        """
-        Zwraca punkt przesunięty o 50 m w kierunku środka prostokąta
-        """
-        # wektor do środka w metrach
         dx = (center_lon - p["lon"]) * 111320 * math.cos(math.radians(p["lat"]))
         dy = (center_lat - p["lat"]) * 111320
         norm = math.hypot(dx, dy)
-        # przesunięcie 50 m po przekątnej
         scale = 50 / norm
         north_m = dy * scale
         east_m = dx * scale
-        return offset_latlon(p["lat"], p["lon"], north_m, east_m)
+        new_p = offset_latlon(p["lat"], p["lon"], north_m, east_m)
+        new_p["alt"] = p.get("alt", 20)   # <-- dodaj alt
+        return new_p
 
     # ROGI przesunięte po przekątnej
-    path.append(diagonal_offset(left_top))      # top-left
-    path.append(diagonal_offset(right_top))     # top-right
-    path.append(diagonal_offset(right_bottom))  # bottom-right
-    path.append(diagonal_offset(left_bottom))   # bottom-left
+    path.append(diagonal_offset(left_top))
+    path.append(diagonal_offset(right_top))
+    path.append(diagonal_offset(right_bottom))
+    path.append(diagonal_offset(left_bottom))
 
-    # srodki boków – 50 m w kierunku środka boku
+    # Środki boków
     top_mid = {"lat": (left_top["lat"] + right_top["lat"]) / 2,
-               "lon": (left_top["lon"] + right_top["lon"]) / 2}
+               "lon": (left_top["lon"] + right_top["lon"]) / 2,
+               "alt": 20}
     path.append(diagonal_offset(top_mid))
 
     right_mid = {"lat": (right_top["lat"] + right_bottom["lat"]) / 2,
-                 "lon": (right_top["lon"] + right_bottom["lon"]) / 2}
+                 "lon": (right_top["lon"] + right_bottom["lon"]) / 2,
+                 "alt": 20}
     path.append(diagonal_offset(right_mid))
 
     bottom_mid = {"lat": (left_bottom["lat"] + right_bottom["lat"]) / 2,
-                  "lon": (left_bottom["lon"] + right_bottom["lon"]) / 2}
+                  "lon": (left_bottom["lon"] + right_bottom["lon"]) / 2,
+                  "alt": 20}
     path.append(diagonal_offset(bottom_mid))
 
     left_mid = {"lat": (left_top["lat"] + left_bottom["lat"]) / 2,
-                "lon": (left_top["lon"] + left_bottom["lon"]) / 2}
+                "lon": (left_top["lon"] + left_bottom["lon"]) / 2,
+                "alt": 20}
     path.append(diagonal_offset(left_mid))
 
     return path
 
+
+def latlon_to_xy(points, min_lat=None, min_lon=None):
+    """
+    Konwertuje listę punktów lat/lon na x/y w metrach względem lewego dolnego rogu.
+    Jeśli min_lat i min_lon są podane, używa ich jako punktu odniesienia.
+    Zwraca listę słowników: {"x": x_m, "y": y_m, "alt": alt}.
+    """
+    if not points:
+        return []
+
+    if min_lat is None:
+        min_lat = min(p['lat'] for p in points)
+    if min_lon is None:
+        min_lon = min(p['lon'] for p in points)
+
+    result = []
+    for p in points:
+        x_m = (p['lon'] - min_lon) * 111320 * math.cos(math.radians(min_lat))
+        y_m = (p['lat'] - min_lat) * 111320
+        result.append({"x": x_m, "y": y_m, "alt": p.get("alt", 20)})
+    return result
+
+
+
 def generate_inside_path(old_waypoints: list, reference_poles: list, buffer_m=5) -> list:
     """
-    Generuje ścieżkę wewnętrzną – każdy waypoint przesuwany w stronę środka prostokąta,
-    ale tak, aby nie wchodził w obszar reference poles. Buffer_m to minimalny odstęp w metrach.
+    Generuje ścieżkę wewnętrzną - każdy waypoint przesuwany w stronę środka prostokąta,
+    ale tak, aby nie wchodził w obszar reference poles. Buffer_m to minimalny odstęp w metrach od ref polls.
     """
     path_inside = []
 
@@ -108,7 +133,7 @@ def generate_inside_path(old_waypoints: list, reference_poles: list, buffer_m=5)
     center_lat = sum(p["lat"] for p in old_waypoints) / len(old_waypoints)
     center_lon = sum(p["lon"] for p in old_waypoints) / len(old_waypoints)
 
-    # granice reference poles (prostokąt)
+    # granice reference poles (linia pomiędzy nimi)
     if reference_poles:
         min_lat_rp = min(p["lat"] for p in reference_poles)
         max_lat_rp = max(p["lat"] for p in reference_poles)
@@ -122,6 +147,12 @@ def generate_inside_path(old_waypoints: list, reference_poles: list, buffer_m=5)
     deg_per_m_lon = 1 / (111320 * math.cos(math.radians(center_lat)))
     buffer_deg_lat = buffer_m * deg_per_m_lat
     buffer_deg_lon = buffer_m * deg_per_m_lon
+
+    all_points = reference_poles + old_waypoints
+    min_lat = min(p['lat'] for p in all_points)
+    min_lon = min(p['lon'] for p in all_points)
+
+    #print("Reference poles in meters:", latlon_to_xy(reference_poles, min_lat=min_lat, min_lon=min_lon))
 
     for wp in old_waypoints:
         # wektor do środka w metrach
@@ -138,9 +169,14 @@ def generate_inside_path(old_waypoints: list, reference_poles: list, buffer_m=5)
 
         # sprawdzamy granice reference poles z buforem
         if reference_poles:
-            if min_lat_rp - buffer_deg_lat <= new_wp["lat"] <= max_lat_rp + buffer_deg_lat:
+            # konwertujemy reference poles i new_wp na x/y
+            # Wszystkie punkty do wyświetlenia razem
+            #new_wp_xy = latlon_to_xy([new_wp], min_lat=min_lat, min_lon=min_lon)[0]
+            #print("New waypoint x/y:", new_wp_xy)
+
+            if min_lat_rp - buffer_deg_lat <= new_wp["lat"] - 30 <= max_lat_rp + buffer_deg_lat:
                 # wypychamy punkt w pionie w stronę oryginalnego wp
-                new_wp["lat"] = wp["lat"]
+                new_wp["lat"] = wp["lat"] - buffer_deg_lat
             if min_lon_rp - buffer_deg_lon <= new_wp["lon"] <= max_lon_rp + buffer_deg_lon:
                 # wypychamy punkt w poziomie w stronę oryginalnego wp
                 new_wp["lon"] = wp["lon"]
@@ -217,14 +253,24 @@ def generate_single_reference_poles(waypoints, spacing_m=200, margin_m=50):
     ]
 
 
-def main():
+def save_to_txt(first_lap, inside_path, filename="PathGeneration/waypoints.txt"):
+    """
+    Saves first lap and inside path waypoints to a text file.
+    Each waypoint is saved as: lat, lon, alt
+    """
+    with open(filename, 'w') as f:
+        for wp in first_lap + inside_path:
+            f.write(f"{wp['lat']:.8f}, {wp['lon']:.8f}, {wp['alt']}\n")
+
+
+def main_test():
     waypoints = [
         {"lat": -35.362138, "lon": 149.163302, "alt": 20},
         {"lat": -35.362138, "lon": 149.167158, "alt": 20},
         {"lat": -35.364384, "lon": 149.167158, "alt": 20},
         {"lat": -35.364384, "lon": 149.163302, "alt": 20}
     ]
-    reference_poles = generate_single_reference_poles(waypoints, spacing_m=200, margin_m=50)
+    reference_poles = generate_single_reference_poles_125m(waypoints, spacing_m=200, margin_m=50)
 
     # pierwsza lap
     first_lap = first_lap_path(waypoints[0], waypoints[1], waypoints[2], waypoints[3])
@@ -234,9 +280,34 @@ def main():
 
     # rysujemy wszystkie punkty
     plot_coordinates(waypoints, reference_poles, first_lap, inside_path)
+    
+    # zapisujemy waypoints do pliku
+    save_to_txt(first_lap, inside_path)
 
+def main_use():
+    # UZUPEŁNIĆ - 4 rogi prostokąta
+    waypoints = [
+        {"lat": -35.362138, "lon": 149.163302, "alt": 20},
+        {"lat": -35.362138, "lon": 149.167158, "alt": 20},
+        {"lat": -35.364384, "lon": 149.167158, "alt": 20},
+        {"lat": -35.364384, "lon": 149.163302, "alt": 20}
+    ]
 
+    # UZUPEŁNIĆ reference poles: lat lon alt
+    reference_poles = [
+        {"lat": -35.363261, "lon": 149.163800, "alt": 18},  # lewy słupek
+        {"lat": -35.363261, "lon": 149.166660, "alt": 18},  # prawy słupek
+    ]
 
+    # generujemy first lap
+    first_lap = first_lap_path(waypoints[0], waypoints[1], waypoints[2], waypoints[3])
 
+    # generujemy inside path
+    inside_path = generate_inside_path(first_lap, reference_poles)
 
-main()
+    # zapisujemy waypoints do pliku
+    save_to_txt(first_lap, inside_path)
+
+if __name__ == "__main__":
+    #main_test()
+    main_use()
