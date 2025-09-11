@@ -1,5 +1,6 @@
 .idea/
 .venv/
+venv/
 
 AI_Prototyping/*
 !AI_Prototyping/
@@ -19,3 +20,4 @@ AI_Prototyping/YoloV8-finetune/DroneModel/*
 !AI_Prototyping/YoloV8-finetune/DroneModel/yolov8n_V2_320/
 !AI_Prototyping/YoloV8-finetune/DroneModel/yolov8n_V2_640/
 
+ssh -T git@github.com
