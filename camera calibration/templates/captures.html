@@ -1,0 +1,35 @@
+<!-- templates/captures.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Captured images</title>
+    <style>
+        body {font-family: Arial, sans-serif; margin: 18px; background:#f8f9fa;}
+        .grid {display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;}
+        .card {background:white; padding:8px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); text-align:center;}
+        img {max-width:100%; border-radius:6px;}
+        a {text-decoration:none; color:#007bff;}
+        .top {display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;}
+    </style>
+</head>
+<body>
+    <div class="top">
+        <h3>Uchwycone zdjęcia</h3>
+        <div><a href="/">Wróć do streamu</a></div>
+    </div>
+    <div class="grid">
+        {% for f in files %}
+        <div class="card">
+            <a href="/capture_file/{{ f }}" target="_blank">
+                <img src="/capture_file/{{ f }}" alt="{{ f }}">
+            </a>
+            <div style="margin-top:6px; font-size:13px;">{{ f }}</div>
+            <div style="margin-top:6px;"><a href="/capture_file/{{ f }}" download>Download</a></div>
+        </div>
+        {% else %}
+        <div>No images yet.</div>
+        {% endfor %}
+    </div>
+</body>
+</html>

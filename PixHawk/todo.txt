@@ -1,0 +1,11 @@
+Do ogarniecia:
+4.ogarniecie modelu zeby korzystalo z wideo bez live feeda i zwracanie srodka ciezkosci figury zeby to wjebac do liczenia waypointa
+
+
+Lukasz:
+3. ogarniecie simple_shapes_detection tak zeby dzialalo - chujowe jak barszcz
+
+Radek: 
+2. liczenie waypointa znalezionego obiektu - robie to w radek.py (trzeba pamietac o zapisywaniu klatek w ktorych wykrylo sie obiekt)
+3. stare waypointy sie nie usuwaja - naprawic
+4. dodanie licznika do celu

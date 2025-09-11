@@ -52,7 +52,15 @@ class PixHawkService:
             print(f"Connection failed: {e}")
             raise
 
-
+    def get_attitude(self, timeout=1):
+        msg_att = self.master.recv_match(type='ATTITUDE', blocking=True, timeout=timeout)
+        if msg_att is None:
+            return None
+        roll  = msg_att.roll    # rad +prawo -lewo
+        pitch = msg_att.pitch   # rad +góra  -dół
+        yaw   = msg_att.yaw     # rad +prawo -lewo
+        return roll, pitch, yaw
+    
     def get_current_coordinates(self) -> Optional[Tuple[float, float, float]]:
         """
         Reads current GPS position (lat, lon, alt).
@@ -128,43 +136,67 @@ class PixHawkService:
         :return: True if mission was uploaded successfully, False otherwise
         """
         # Clear existing mission
-        self.master.mav.mission_clear_all_send(self.master.target_system, self.master.target_component)
+        #self.master.mav.mission_clear_all_send(self.master.target_system, self.master.target_component)
 
         # Wait for clear acknowledgment
-        clear_ack = self.master.recv_match(type='MISSION_ACK', blocking=True, timeout=5)
-        if not clear_ack or clear_ack.type != mavutil.mavlink.MAV_MISSION_ACCEPTED:
-            print("Failed to clear mission")
-            return False
+        #clear_ack = self.master.recv_match(type='MISSION_ACK', blocking=True, timeout=5)
+        #if not clear_ack or clear_ack.type != mavutil.mavlink.MAV_MISSION_ACCEPTED:
+        #    print("Failed to clear mission")
+        #    return False
 
         # Send mission count
-        self.master.mav.mission_count_send(self.master.target_system, self.master.target_component, len(waypoints))
+    # Wyślij ilość elementów w misji
+        self.master.mav.mission_count_send(
+            self.master.target_system,
+            self.master.target_component,
+            len(waypoints)
+        )
 
         for i, wp in enumerate(waypoints):
-            # Wait for mission request
+            # Czekamy na żądanie przesłania waypointa
             req = self.master.recv_match(type='MISSION_REQUEST', blocking=True, timeout=5)
             if not req:
                 print(f"No mission request received for waypoint {i}")
                 return False
 
-            # Send waypoint
-            self.master.mav.mission_item_send(
-                self.master.target_system,
-                self.master.target_component,
-                i,  # sequence number
-                mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-                0,  # current (0=false, 1=true for first waypoint)
-                1 if i == 0 else 0,  # autocontinue
-                0, 0, 0, 0,  # param1-4 (hold time, acceptance radius, etc.)
-                wp["lat"],
-                wp["lon"],
-                wp["alt"]
-            )
+            if wp["cmd"] == "NAV":
+                self.master.mav.mission_item_send(
+                    self.master.target_system,
+                    self.master.target_component,
+                    i,  # sequence number
+                    mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                    mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+                    1 if i == 0 else 0,  # current
+                    1,  # autocontinue
+                    0, wp["acr"], 0, 0,  # param1-4 (hold time, acceptance radius, etc.)
+                    wp["lat"],
+                    wp["lon"],
+                    wp["alt"]
+                )
 
-        # Wait for final acknowledgment
+            elif wp["cmd"] == "SET_SERVO":
+                self.master.mav.mission_item_send(
+                    self.master.target_system,
+                    self.master.target_component,
+                    i,
+                    mavutil.mavlink.MAV_FRAME_MISSION,  # frame for DO commands
+                    mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
+                    0,  # current = 0 (nie ustawia aktualnej pozycji)
+                    1,  # autocontinue
+                    wp["ch"],   # param1 = channel
+                    wp["pwm"],       # param2 = PWM
+                    0, 0, 0,         # param3-5 (unused)
+                    0, 0, 0          # x, y, z not used for this command
+                )
+
+            else:
+                print(f"Unknown command in waypoint {i}: {wp['command']}")
+                return False
+
+        # Czekamy na potwierdzenie
         ack = self.master.recv_match(type='MISSION_ACK', blocking=True, timeout=5)
         if ack and ack.type == mavutil.mavlink.MAV_MISSION_ACCEPTED:
-            print(f"Mission upload successful: {len(waypoints)} waypoints")
+            print(f"Mission upload successful: {len(waypoints)} items")
             return True
         else:
             print(f"Mission upload failed: {ack.type if ack else 'timeout'}")
@@ -439,14 +471,16 @@ class PixHawkService:
         """
         Gets current mission progress.
 
-        :return: Dict with current_waypoint and total_waypoints, or None if no data
+        Returns:
+            list with [ current_waypoint, total_waypoints] None if no data
         """
         current = self.master.recv_match(type='MISSION_CURRENT', blocking=True, timeout=3)
+        print(current)
         if current:
-            return {
-                "current_waypoint": current.seq,
-                "total_waypoints": len(self.get_mission())
-            }
+            return (
+                current.seq,
+                current.total
+            )
         return None
 
     def wait_for_command_ack(self, command: int, timeout: int = 5) -> bool:
@@ -499,3 +533,10 @@ class PixHawkService:
         if hasattr(self, 'master'):
             self.master.close()
             print("MAVLink connection closed")
+
+if __name__ == "__main__": 
+    pix = PixHawkService()
+    t=time.time()
+    ret = pix.get_mission_status()
+    print(time.time()-t)
+    print('gioakjsfcnSKIEJFVWkf')

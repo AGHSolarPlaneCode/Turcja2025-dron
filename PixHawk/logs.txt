@@ -1,0 +1,6 @@
+Connected to system 1, component 0
+Mission upload successful: 4 waypoints
+Mission uploaded successfully
+
+
+python sciezka/do/skryptu | tee logs.txt

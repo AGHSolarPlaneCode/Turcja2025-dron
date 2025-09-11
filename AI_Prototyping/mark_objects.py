@@ -4,7 +4,7 @@ from ultralytics import YOLO
 import argparse
 import os
 
-def load_yolo_model(model_path='yolov8n.pt'):
+def load_yolo_model( model_path="YoloV8-finetune/DroneModel/yolov8n_V2_320/weights/best_ncnn_model"):
     """
     Load YOLO model. Downloads YOLOv8 nano model if not found locally.
     You can use: yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt

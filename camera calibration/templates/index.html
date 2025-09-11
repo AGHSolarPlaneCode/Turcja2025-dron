@@ -1,0 +1,80 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Raspberry Pi Camera Stream</title>
+    <style>
+        body {font-family: Arial, sans-serif; text-align: center; margin: 30px; background-color: #f0f0f0;}
+        .container {background: white; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.08); max-width: 900px; margin: 0 auto;}
+        .controls {margin: 16px;}
+        button {margin: 5px; padding: 10px 16px; font-size: 15px; border: none; border-radius: 6px; cursor: pointer; background-color: #007bff; color: white;}
+        button:hover {background-color: #0056b3;}
+        button.active {background-color: #28a745;}
+        img {border: 2px solid #333; border-radius: 8px;}
+        .checkbox-container {display:flex; align-items:center; justify-content:center; gap: 10px;}
+        input[type="checkbox"] {width:18px; height:18px;}
+        .status {margin-top:8px; font-size:14px; color:#6c757d;}
+        .top-row {display:flex; justify-content:space-between; align-items:center;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-row">
+            <h2>Raspberry Pi live video</h2>
+            <div>
+                <a href="/captures">Zobacz zrobione zdjęcia</a>
+            </div>
+        </div>
+
+        <img id="video" src="/video_feed" width="{{ width }}" height="{{ height }}">
+
+        <div class="controls">
+            <div style="margin:12px 0;">
+                <button id="btn-original" onclick="setMode('original')" class="active">Original</button>
+                <button id="btn-processed" onclick="setMode('processed')">Processed</button>
+                <button id="btn-capture" onclick="captureFrame()">📸 Capture</button>
+            </div>
+
+            <div style="margin-top:12px;" class="checkbox-container">
+                <input type="checkbox" id="stabilization" onchange="toggleStabilization()">
+                <label for="stabilization">Enable video stabilization</label>
+            </div>
+            <div class="status" id="stabilization-status">Stabilization: {{ stabilization }}</div>
+            <div class="status" id="capture-status"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = '{{ mode }}';
+        function setMode(mode) {
+            currentMode = mode;
+            fetch('/set_mode/' + mode).then(()=> {
+                document.querySelectorAll('button[id^="btn-"]').forEach(btn => { btn.classList.remove('active'); });
+                document.getElementById('btn-' + mode).classList.add('active');
+            });
+        }
+
+        function toggleStabilization() {
+            const checkbox = document.getElementById('stabilization');
+            const status = document.getElementById('stabilization-status');
+            const enabled = checkbox.checked;
+            fetch('/set_stabilization/' + (enabled ? 'true':'false'));
+            status.textContent = enabled ? 'Stabilization: ON' : 'Stabilization: OFF';
+            status.style.color = enabled ? '#28a745' : '#6c757d';
+        }
+
+        function captureFrame() {
+            const status = document.getElementById('capture-status');
+            status.textContent = 'Saving...';
+            fetch('/capture', {method: 'POST'}).then(r => r.text()).then(msg => {
+                status.textContent = msg;
+                setTimeout(()=> status.textContent = '', 2500);
+            }).catch(err => {
+                status.textContent = 'Error saving image';
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>
