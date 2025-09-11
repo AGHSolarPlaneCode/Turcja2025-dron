@@ -8,7 +8,7 @@ import requests
 class LiveDetection:
     def __init__(self):
 
-        self.SERVER_URL = "http://100.127.85.126:8000/upload"   # <- podaj IP Tailscale serwera iza
+        self.SERVER_URL = "http://100.82.165.85:8000/upload"   # <- podaj IP Tailscale serwera iza
         self.AUTH_TOKEN = "iza123"                    # <- Twój token ustawiony na serwerze
 
         
