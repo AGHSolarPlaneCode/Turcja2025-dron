@@ -81,7 +81,7 @@ class LiveDetection:
 
             # Process blue contours
             for cnt in contours_blue:
-                if cv2.contourArea(cnt) < 100:
+                if cv2.contourArea(cnt) < 400:
                     continue
                 approx = cv2.approxPolyDP(cnt, 0.04 * cv2.arcLength(cnt, True), True)
 
@@ -90,7 +90,7 @@ class LiveDetection:
                     #    continue
                     srodek_kw_x = int((approx.ravel()[2] + approx.ravel()[6]) / 2)
                     srodek_kw_y = int((approx.ravel()[3] + approx.ravel()[7]) / 2)
-                    cv2.drawContours(frame, [approx], -1, (255, 0, 0), 3)
+                    cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
                     cv2.circle(frame, (srodek_kw_x,srodek_kw_y), 3, (0, 255, 0), 3)
                     print(f"[BLUE] Kwadrat -> środek: ({srodek_kw_x}, {srodek_kw_y}) count: {self.deteced_square_blue}")
                     self.deteced_square_blue += 1
@@ -108,7 +108,7 @@ class LiveDetection:
                     #    continue
                     srodek_sz_x = sum(approx.ravel()[i] for i in range(0, 12, 2)) // 6
                     srodek_sz_y = sum(approx.ravel()[i] for i in range(1, 12, 2)) // 6
-                    cv2.drawContours(frame, [approx], -1, (255, 0, 0), 3)
+                    cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
                     cv2.circle(frame, (srodek_sz_x,srodek_sz_y), 3, (0, 255, 0), 3)
                     print(f"[BLUE] Szesciokat -> środek: ({srodek_sz_x}, {srodek_sz_y}) count: {self.deteced_hexagon_blue}")
                     self.deteced_hexagon_blue += 1
@@ -133,7 +133,7 @@ class LiveDetection:
                     #    continue
                     srodek_tr_x = sum(approx.ravel()[i] for i in range(0, 6, 2)) // 3
                     srodek_tr_y = sum(approx.ravel()[i] for i in range(1, 6, 2)) // 3
-                    cv2.drawContours(frame, [approx], -1, (0, 0, 255), 3)
+                    cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
                     cv2.circle(frame, (srodek_tr_x, srodek_tr_y), 3, (0, 255, 0), 3)
                     print(f"[RED] Trojkat -> środek: ({srodek_tr_x}, {srodek_tr_y}) count: {self.deteced_triangle_red}")
                     self.deteced_triangle_red += 1                    
@@ -152,7 +152,7 @@ class LiveDetection:
                     #    continue
                     srodek_kw_x = int((approx.ravel()[2] + approx.ravel()[6]) / 2)
                     srodek_kw_y = int((approx.ravel()[3] + approx.ravel()[7]) / 2)
-                    cv2.drawContours(frame, [approx], -1, (0, 0, 255), 3)
+                    cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
                     cv2.circle(frame, (srodek_kw_x,srodek_kw_y), 3, (0, 255, 0), 3)
                     print(f"[RED] Kwadrat -> środek: ({srodek_kw_x}, {srodek_kw_y}) count: {self.deteced_square_red}")
                     self.deteced_square_red += 1
